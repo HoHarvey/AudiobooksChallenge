@@ -4,10 +4,29 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -20,6 +39,7 @@ import okhttp3.Response
 import java.io.IOException
 
 
+private val Podcast.publisher: Any
 
 class MainActivity : ComponentActivity() {
     private val client = OkHttpClient()
@@ -45,6 +65,50 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    @Composable
+    fun PodcastList(podcasts: ArrayList<Podcast>){
+        Column {
+            podcasts.forEach { podcast ->
+
+            }
+        }
+    }
+
+    @Composable
+    fun PodcastItem(podcast: Podcast) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            AsyncImage(
+                painter = podcast.thumbnail,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = podcast.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = podcast.publisherName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    fontStyle = FontStyle.Italic
+                )
+            }
+        }
+    }
+
     private fun fetchBestPodcasts() {
         val request = Request.Builder()
             .url("https://listen-api-test.listennotes.com/api/v2/best_podcasts")
