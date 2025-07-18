@@ -67,8 +67,6 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.delay
 import androidx.paging.LoadState
 
 
@@ -180,6 +178,19 @@ class MainActivity : ComponentActivity() {
             }
             if (lazyPagingItems.itemCount == 0) {
                 item { Text("No podcasts found or still loading...") }
+            }
+            // Show spinner when loading next page
+            if (lazyPagingItems.loadState.append is LoadState.Loading) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
             }
         }
     }
