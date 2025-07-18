@@ -4,18 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
 import okhttp3.Call
 import okhttp3.Callback
@@ -23,7 +15,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
-import java.net.URL
+
 
 
 class MainActivity : ComponentActivity() {
@@ -77,7 +69,7 @@ class MainActivity : ComponentActivity() {
                     val responseBody = response.body.string()
                     runOnUiThread {
                         // Process the JSON response (e.g., parse or display)
-                        println("Response: $responseBody")
+
                     }
                 }
             }
