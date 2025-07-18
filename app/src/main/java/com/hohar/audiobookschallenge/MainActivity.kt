@@ -15,10 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
+import com.hohar.audiobookschallenge.Podcast
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
@@ -38,12 +40,15 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
+import androidx.compose.runtime.mutableStateListOf
+
 
 
 class MainActivity : ComponentActivity() {
     private val client = OkHttpClient()
-    private var podcastList: ArrayList<Podcast> = arrayListOf()
+    private val podcastList = mutableStateListOf<Podcast>()
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fetchBestPodcasts()
@@ -64,7 +69,11 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(innerPadding)
                     ){
-                        PodcastList(podcastList)
+                        if (podcastList.isEmpty()) {
+                            Text("Loading podcasts...")
+                        } else {
+                            PodcastList(podcastList)
+                        }
                     }
                 }
             }
@@ -72,7 +81,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun PodcastList(podcasts: ArrayList<Podcast>){
+    fun PodcastList(podcasts: List<Podcast>){
         Column {
             podcasts.forEach { podcast ->
                 PodcastItem(podcast)
@@ -87,34 +96,36 @@ class MainActivity : ComponentActivity() {
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            Image(
-                painter = rememberAsyncImagePainter(podcast.thumbnail),
-                contentDescription = podcast.title,
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            )
+            if (!podcast.thumbnail.isNullOrEmpty()) {
+                Image(
+                    painter = rememberAsyncImagePainter(podcast.thumbnail),
+                    contentDescription = podcast.title ?: "",
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = podcast.title,
-                    style = MaterialTheme.typography.h1,
+                    text = podcast.title ?: "",
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = podcast.publisherName,
-                    style = MaterialTheme.typography.body1,
+                    text = podcast.publisherName ?: "",
+                    style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray,
                     fontStyle = FontStyle.Italic
                 )
-                if (podcast.favorite){
+                if (podcast.favorite ?: false){
                     Text(
                         text = "Favourited",
-                        style = MaterialTheme.typography.body1,
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color.Red
                     )
                 }
@@ -129,30 +140,30 @@ class MainActivity : ComponentActivity() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                // Handle network error or request failure
                 runOnUiThread {
-                    // Update UI or show error message
                     println("Network error: ${e.message}")
                 }
             }
 
             override fun onResponse(call: Call, response: Response) {
-                response.use { // Ensures response body is closed
+                response.use {
                     if (!response.isSuccessful) {
                         runOnUiThread {
-                            // Handle HTTP error
                             println("HTTP error: ${response.code}")
                         }
                         return
                     }
 
-                    val responseBody = response.body.string()
+                    val responseBody = response.body?.string() ?: ""
                     runOnUiThread {
-                        // Process the JSON response
+                        println("Raw JSON: $responseBody")
                         val jsonElement = Json.parseToJsonElement(responseBody)
                         val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
-                        podcastList = Json.decodeFromJsonElement<ArrayList<Podcast>>(
-                            podcastsJsonArray)
+                        println("Parsed podcasts: " + podcastsJsonArray.toString())
+                        val parsedPodcasts = Json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
+                        println("Decoded podcasts: $parsedPodcasts")
+                        podcastList.clear()
+                        podcastList.addAll(parsedPodcasts)
                     }
                 }
             }
