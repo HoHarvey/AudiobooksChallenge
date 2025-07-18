@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -38,8 +40,6 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 
-
-private val Podcast.publisher: Any
 
 class MainActivity : ComponentActivity() {
     private val client = OkHttpClient()
@@ -61,6 +61,13 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     // Your main screen content goes here
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ){
+                        PodcastList(podcastList)
+                    }
                 }
             }
         }
@@ -70,7 +77,7 @@ class MainActivity : ComponentActivity() {
     fun PodcastList(podcasts: ArrayList<Podcast>){
         Column {
             podcasts.forEach { podcast ->
-
+                PodcastItem(podcast)
             }
         }
     }
@@ -82,8 +89,9 @@ class MainActivity : ComponentActivity() {
                 .fillMaxWidth()
                 .padding(8.dp)
         ) {
-            AsyncImage(
-                painter = podcast.thumbnail,
+            Image(
+                painter = rememberAsyncImagePainter(podcast.thumbnail),
+                contentDescription = podcast.title,
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(8.dp))
@@ -105,6 +113,13 @@ class MainActivity : ComponentActivity() {
                     color = Color.Gray,
                     fontStyle = FontStyle.Italic
                 )
+                if (podcast.favorite){
+                    Text(
+                        text = "Favourited",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Red
+                    )
+                }
             }
         }
     }
