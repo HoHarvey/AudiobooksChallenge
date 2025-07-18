@@ -29,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -68,37 +67,37 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.LoadState
+import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.collectAsLazyPagingItems
+
+
 
 
 class MainActivity : ComponentActivity() {
-    private val client = OkHttpClient()
-    private val podcastList = mutableStateListOf<Podcast>()
-
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        fetchBestPodcasts()
         enableEdgeToEdge()
         setContent {
             AudiobooksChallengeTheme {
                 val navController = rememberNavController()
+                val viewModel: PodcastViewModel = viewModel()
                 MainScreen(navController = navController) {
                     NavHost(navController = navController, startDestination = "podcastList") {
                         composable("podcastList") {
-                            if (podcastList.isEmpty()) {
-                                Text("Loading podcasts...")
-                            } else {
-                                PodcastPagingScreen(
-                                    podcastList = podcastList,
-                                    onPodcastClick = { selectedPodcast ->
-                                        navController.navigate("podcastDetail/${selectedPodcast.id}")
-                                    }
-                                )
-                            }
+                            val lazyPagingItems = viewModel.podcastPagingData.collectAsLazyPagingItems()
+                            PodcastPagingList(
+                                lazyPagingItems = lazyPagingItems,
+                                onPodcastClick = { selectedPodcast ->
+                                    navController.navigate("podcastDetail/${selectedPodcast.id}")
+                                }
+                            )
                         }
                         composable("podcastDetail/{podcastId}") { backStackEntry ->
                             val podcastId = backStackEntry.arguments?.getString("podcastId")
-                            val podcast = podcastList.find { it.id == podcastId }
+                            val podcast = viewModel.podcastList.collectAsState().value.find { it.id == podcastId }
                             if (podcast != null) {
                                 PodcastDetails(podcast = podcast)
                             } else {
@@ -313,45 +312,6 @@ class MainActivity : ComponentActivity() {
                 textAlign = TextAlign.Center
             )
         }
-    }
-
-    private fun fetchBestPodcasts() {
-        val request = Request.Builder()
-            .url("https://listen-api-test.listennotes.com/api/v2/best_podcasts")
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    println("Network error: ${e.message}")
-                }
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (!response.isSuccessful) {
-                        runOnUiThread {
-                            println("HTTP error: ${response.code}")
-                        }
-                        return
-                    }
-
-                    val responseBody = response.body?.string() ?: ""
-                    runOnUiThread {
-                        println("Raw JSON: $responseBody")
-                        val json = Json { ignoreUnknownKeys = true }
-                        val jsonElement = json.parseToJsonElement(responseBody)
-                        val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
-                        println("Parsed podcasts: " + podcastsJsonArray.toString())
-                        val parsedPodcasts = json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
-                        println("Decoded podcasts: $parsedPodcasts")
-                        podcastList.clear()
-                        podcastList.addAll(parsedPodcasts)
-                        println("Podcast list size after fetch: ${podcastList.size}")
-                    }
-                }
-            }
-        })
     }
 }
 

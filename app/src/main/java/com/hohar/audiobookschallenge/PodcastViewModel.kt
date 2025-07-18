@@ -16,6 +16,8 @@ import okhttp3.Request
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class PodcastViewModel : ViewModel() {
     private val client = OkHttpClient()
@@ -36,7 +38,9 @@ class PodcastViewModel : ViewModel() {
             val request = Request.Builder()
                 .url("https://listen-api-test.listennotes.com/api/v2/best_podcasts")
                 .build()
-            val response = client.newCall(request).execute()
+            val response = withContext(Dispatchers.IO) {
+                client.newCall(request).execute()
+            }
             if (response.isSuccessful) {
                 val responseBody = response.body?.string() ?: ""
                 val json = Json { ignoreUnknownKeys = true }
@@ -45,12 +49,6 @@ class PodcastViewModel : ViewModel() {
                 val parsedPodcasts = json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
                 _podcastList.value = parsedPodcasts
             }
-        }
-    }
-
-    fun toggleFavourite(podcastId: String) {
-        _podcastList.value = _podcastList.value.map {
-            if (it.id == podcastId) it.copy(favourite = !it.favourite) else it
         }
     }
 }
