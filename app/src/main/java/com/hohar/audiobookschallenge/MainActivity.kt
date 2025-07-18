@@ -41,9 +41,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.getValue
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.rememberAsyncImagePainter
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
@@ -66,43 +68,21 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AudiobooksChallengeTheme {
-                Scaffold(
-                    topBar = {
-                        // add top bar with title of Podcasts
-                        TopAppBar(
-                            title = { Text("Podcasts") }
-                        )
-                    }
-                ) { innerPadding ->
-                    // Your main screen content goes here
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    ){
-                        if (podcastList.isEmpty()) {
-                            Text("Loading podcasts...")
-                        } else {
-                            val navController = rememberNavController()
-                            NavHost(navController = navController,
-                                startDestination = "podcastList") {
-                                composable("podcastList") {
-                                    // podcast list composable
-                                    PodcastList(podcastList) { selectedPodcast ->
-                                        navController.navigate("podcastDetail/${selectedPodcast.id}")
-                                    }
-                                }
-                                composable("podcastDetail/{podcastId}") { backStackEntry ->
-                                    val podcastId = backStackEntry.arguments?.
-                                    getString("podcastId")
-                                    // podcast detail composable, passing the podcast Id
-                                    val podcast = podcastList.find { it.id == podcastId }
-                                    if (podcast != null) {
-                                        PodcastDetails(podcast = podcast, onBack = { navController.popBackStack() })
-                                    } else {
-                                        Text("Podcast not found")
-                                    }
-                                }
+                val navController = rememberNavController()
+                MainScreen(navController = navController) {
+                    NavHost(navController = navController, startDestination = "podcastList") {
+                        composable("podcastList") {
+                            PodcastList(podcastList) { selectedPodcast ->
+                                navController.navigate("podcastDetail/${selectedPodcast.id}")
+                            }
+                        }
+                        composable("podcastDetail/{podcastId}") { backStackEntry ->
+                            val podcastId = backStackEntry.arguments?.getString("podcastId")
+                            val podcast = podcastList.find { it.id == podcastId }
+                            if (podcast != null) {
+                                PodcastDetails(podcast = podcast, onBack = { navController.popBackStack() })
+                            } else {
+                                Text("Podcast not found")
                             }
                         }
                     }
@@ -111,6 +91,48 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun MainScreen(navController: NavHostController, content: @Composable () -> Unit) {
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+
+        Scaffold(
+            topBar = {
+                when {
+                    currentRoute == "podcastList" -> {
+                        TopAppBar(
+                            title = { Text("Podcasts") }
+                        )
+                    }
+                    currentRoute?.startsWith("podcastDetail") == true -> {
+                        TopAppBar(
+                            title = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    IconButton(onClick = { navController.popBackStack() }) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowBack,
+                                                contentDescription = "Back"
+                                            )
+                                            Text(
+                                                text = "Back",
+                                                modifier = Modifier.padding(start = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        ) { innerPadding ->
+            Column(modifier = Modifier.padding(innerPadding)) {
+                content()
+            }
+        }
+    }
     @Composable
     fun PodcastList(podcasts: List<Podcast>, onPodcastClick: (Podcast) -> Unit) {
         Column {
