@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,22 +16,34 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
-import com.hohar.audiobookschallenge.Podcast
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
@@ -40,8 +53,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
-import androidx.compose.runtime.mutableStateListOf
-
 
 
 class MainActivity : ComponentActivity() {
@@ -72,7 +83,27 @@ class MainActivity : ComponentActivity() {
                         if (podcastList.isEmpty()) {
                             Text("Loading podcasts...")
                         } else {
-                            PodcastList(podcastList)
+                            val navController = rememberNavController()
+                            NavHost(navController = navController,
+                                startDestination = "podcastList") {
+                                composable("podcastList") {
+                                    // podcast list composable
+                                    PodcastList(podcastList) { selectedPodcast ->
+                                        navController.navigate("podcastDetail/${selectedPodcast.id}")
+                                    }
+                                }
+                                composable("podcastDetail/{podcastId}") { backStackEntry ->
+                                    val podcastId = backStackEntry.arguments?.
+                                    getString("podcastId")
+                                    // podcast detail composable, passing the podcast Id
+                                    val podcast = podcastList.find { it.id == podcastId }
+                                    if (podcast != null) {
+                                        PodcastDetails(podcast = podcast, onBack = { navController.popBackStack() })
+                                    } else {
+                                        Text("Podcast not found")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -81,19 +112,20 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun PodcastList(podcasts: List<Podcast>){
+    fun PodcastList(podcasts: List<Podcast>, onPodcastClick: (Podcast) -> Unit) {
         Column {
             podcasts.forEach { podcast ->
-                PodcastItem(podcast)
+                PodcastItem(podcast, onClick = { onPodcastClick(podcast) })
             }
         }
     }
 
     @Composable
-    fun PodcastItem(podcast: Podcast) {
+    fun PodcastItem(podcast: Podcast, onClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable { onClick() }
                 .padding(8.dp)
         ) {
             if (!podcast.thumbnail.isNullOrEmpty()) {
@@ -130,6 +162,86 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    @Composable
+    fun PodcastDetails(
+        podcast: Podcast,
+        onBack: () -> Unit = {},
+        onFavouriteClick: () -> Unit = {},
+        isFavourite: Boolean = false
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Restore original back arrow row (or previous top bar)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+            }
+
+            // Title and publisher
+            Text(
+                text = podcast.title ?: "",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            Text(
+                text = podcast.publisherName ?: "",
+                style = MaterialTheme.typography.bodySmall,
+                fontStyle = FontStyle.Italic,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            // Podcast image
+            Image(
+                painter = rememberAsyncImagePainter(podcast.image),
+                contentDescription = podcast.title ?: "",
+                modifier = Modifier
+                    .size(180.dp)
+                    .clip(RoundedCornerShape(16.dp))
+            )
+
+            // Favourite button
+            Button(
+                onClick = onFavouriteClick,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4B4B)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .padding(vertical = 24.dp)
+                    .fillMaxWidth(0.5f)
+            ) {
+                Text(
+                    text = if (isFavourite) "Favourited" else "Favourite",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Description
+            Text(
+                text = podcast.description ?: "",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 8.dp),
+                textAlign = TextAlign.Center
+            )
         }
     }
 
