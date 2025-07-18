@@ -28,6 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
@@ -150,46 +152,53 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun PodcastItem(podcast: Podcast, onClick: () -> Unit) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick() }
-                .padding(8.dp)
-        ) {
-            if (!podcast.thumbnail.isNullOrEmpty()) {
-                Image(
-                    painter = rememberAsyncImagePainter(podcast.thumbnail),
-                    contentDescription = podcast.title ?: "",
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(
-                verticalArrangement = Arrangement.Center
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick() }
+                    .padding(8.dp)
             ) {
-                Text(
-                    text = podcast.title ?: "",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = podcast.publisherName ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
-                    fontStyle = FontStyle.Italic
-                )
-                if (podcast.favourite ?: false){
-                    Text(
-                        text = "Favourited",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Red
+                if (!podcast.thumbnail.isNullOrEmpty()) {
+                    Image(
+                        painter = rememberAsyncImagePainter(podcast.thumbnail),
+                        contentDescription = podcast.title ?: "",
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
                     )
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = podcast.title ?: "",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = podcast.publisherName ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        fontStyle = FontStyle.Italic
+                    )
+                    if (podcast.favourite) {
+                        Text(
+                            text = "Favourited",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Red
+                        )
+                    }
+                }
             }
+            HorizontalDivider(
+                modifier = Modifier.fillMaxWidth(),
+                thickness = 1.dp,
+                color = Color.LightGray.copy(alpha = 0.3f)
+            )
         }
     }
 
