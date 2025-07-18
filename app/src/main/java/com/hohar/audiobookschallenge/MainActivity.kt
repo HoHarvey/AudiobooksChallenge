@@ -15,11 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Text
+import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,7 +44,6 @@ class MainActivity : ComponentActivity() {
     private val client = OkHttpClient()
     private var podcastList: ArrayList<Podcast> = arrayListOf()
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         fetchBestPodcasts()
@@ -102,21 +100,21 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text(
                     text = podcast.title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.h1,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = podcast.publisherName,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.body1,
                     color = Color.Gray,
                     fontStyle = FontStyle.Italic
                 )
                 if (podcast.favorite){
                     Text(
                         text = "Favourited",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.body1,
                         color = Color.Red
                     )
                 }
