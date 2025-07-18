@@ -43,6 +43,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.rememberAsyncImagePainter
@@ -192,14 +195,9 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun PodcastDetails(
-        podcast: Podcast,
-        onFavouriteClick: () -> Unit = {
-            // if favorite is true, make it false and vice versa
-            podcast.favourite = !podcast.favourite
-        },
-        //set ifFavourite to podcast favourite property
-        isFavourite: Boolean = podcast.favourite
+        podcast: Podcast
     ) {
+        var isFavourite by remember { mutableStateOf(podcast.favourite) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -233,7 +231,10 @@ class MainActivity : ComponentActivity() {
 
             // Favourite button
             Button(
-                onClick = onFavouriteClick,
+                onClick = {
+                    isFavourite = !isFavourite
+                    podcast.favourite = !podcast.favourite
+                          },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4B4B)),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
