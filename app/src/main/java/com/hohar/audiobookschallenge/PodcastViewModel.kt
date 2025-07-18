@@ -19,6 +19,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.paging.cachedIn
 
 class PodcastViewModel : ViewModel() {
     private val client = OkHttpClient()
@@ -32,7 +33,7 @@ class PodcastViewModel : ViewModel() {
                 PodcastPagingSource(list)
             }.flow
         }
-        .stateIn(viewModelScope, SharingStarted.Lazily, PagingData.empty())
+        .cachedIn(viewModelScope)
 
     init {
         fetchBestPodcasts()
