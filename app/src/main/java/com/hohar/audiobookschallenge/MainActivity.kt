@@ -17,13 +17,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import java.io.IOException
 import java.net.URL
 
 
 class MainActivity : ComponentActivity() {
+    private val client = OkHttpClient()
+    private var podcastList: ArrayList<String> = arrayListOf()
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        fetchBestPodcasts()
         enableEdgeToEdge()
         setContent {
             AudiobooksChallengeTheme {
@@ -39,6 +49,39 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    private fun fetchBestPodcasts() {
+        val request = Request.Builder()
+            .url("https://listen-api-test.listennotes.com/api/v2/best_podcasts")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Handle network error or request failure
+                runOnUiThread {
+                    // Update UI or show error message
+                    println("Network error: ${e.message}")
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use { // Ensures response body is closed
+                    if (!response.isSuccessful) {
+                        runOnUiThread {
+                            // Handle HTTP error
+                            println("HTTP error: ${response.code}")
+                        }
+                        return
+                    }
+
+                    val responseBody = response.body.string()
+                    runOnUiThread {
+                        // Process the JSON response (e.g., parse or display)
+                        println("Response: $responseBody")
+                    }
+                }
+            }
+        })
     }
 }
 
