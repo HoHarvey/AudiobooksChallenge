@@ -161,7 +161,7 @@ class MainActivity : ComponentActivity() {
                         val jsonElement = json.parseToJsonElement(responseBody)
                         val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
                         println("Parsed podcasts: " + podcastsJsonArray.toString())
-                        val parsedPodcasts = Json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
+                        val parsedPodcasts = json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
                         println("Decoded podcasts: $parsedPodcasts")
                         podcastList.clear()
                         podcastList.addAll(parsedPodcasts)
