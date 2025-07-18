@@ -11,6 +11,7 @@ import androidx.paging.PagingData
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import kotlinx.serialization.json.Json
@@ -25,9 +26,13 @@ class PodcastViewModel : ViewModel() {
     val podcastList: StateFlow<List<Podcast>> = _podcastList.asStateFlow()
 
     // PagingData flow for Compose
-    val podcastPagingData: Flow<PagingData<Podcast>> = Pager(PagingConfig(pageSize = 10)) {
-        PodcastPagingSource(_podcastList.value)
-    }.flow.stateIn(viewModelScope, SharingStarted.Lazily, PagingData.empty())
+    val podcastPagingData: Flow<PagingData<Podcast>> = podcastList
+        .flatMapLatest { list ->
+            Pager(PagingConfig(pageSize = 10)) {
+                PodcastPagingSource(list)
+            }.flow
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, PagingData.empty())
 
     init {
         fetchBestPodcasts()
@@ -47,7 +52,10 @@ class PodcastViewModel : ViewModel() {
                 val jsonElement = json.parseToJsonElement(responseBody)
                 val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
                 val parsedPodcasts = json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
+                println("Fetched podcasts: ${parsedPodcasts.size}")
                 _podcastList.value = parsedPodcasts
+            } else {
+                println("HTTP error: ${response.code}")
             }
         }
     }
