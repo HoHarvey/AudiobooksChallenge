@@ -24,7 +24,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -82,7 +81,7 @@ class MainActivity : ComponentActivity() {
                             val podcastId = backStackEntry.arguments?.getString("podcastId")
                             val podcast = podcastList.find { it.id == podcastId }
                             if (podcast != null) {
-                                PodcastDetails(podcast = podcast, onBack = { navController.popBackStack() })
+                                PodcastDetails(podcast = podcast)
                             } else {
                                 Text("Podcast not found")
                             }
@@ -180,7 +179,7 @@ class MainActivity : ComponentActivity() {
                     color = Color.Gray,
                     fontStyle = FontStyle.Italic
                 )
-                if (podcast.favorite ?: false){
+                if (podcast.favourite ?: false){
                     Text(
                         text = "Favourited",
                         style = MaterialTheme.typography.bodySmall,
@@ -194,9 +193,12 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun PodcastDetails(
         podcast: Podcast,
-        onBack: () -> Unit = {},
-        onFavouriteClick: () -> Unit = {},
-        isFavourite: Boolean = false
+        onFavouriteClick: () -> Unit = {
+            // if favorite is true, make it false and vice versa
+            podcast.favourite = !podcast.favourite
+        },
+        //set ifFavourite to podcast favourite property
+        isFavourite: Boolean = podcast.favourite
     ) {
         Column(
             modifier = Modifier

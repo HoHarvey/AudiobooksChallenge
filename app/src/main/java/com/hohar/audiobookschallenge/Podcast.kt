@@ -10,5 +10,5 @@ data class Podcast(
     val image: String? = null,
     val thumbnail: String? = null,
     val description: String? = null,
-    val favorite: Boolean = false
+    var favourite: Boolean = false
 )
