@@ -9,6 +9,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -20,7 +23,7 @@ import java.io.IOException
 
 class MainActivity : ComponentActivity() {
     private val client = OkHttpClient()
-    private var podcastList: ArrayList<String> = arrayListOf()
+    private var podcastList: ArrayList<Podcast> = arrayListOf()
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,8 +71,11 @@ class MainActivity : ComponentActivity() {
 
                     val responseBody = response.body.string()
                     runOnUiThread {
-                        // Process the JSON response (e.g., parse or display)
-
+                        // Process the JSON response
+                        val jsonElement = Json.parseToJsonElement(responseBody)
+                        val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
+                        podcastList = Json.decodeFromJsonElement<ArrayList<Podcast>>(
+                            podcastsJsonArray)
                     }
                 }
             }
