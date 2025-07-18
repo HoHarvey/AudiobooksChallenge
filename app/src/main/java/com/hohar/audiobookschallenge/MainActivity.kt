@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
@@ -66,8 +67,9 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import androidx.paging.PagingSource
-import androidx.paging.PagingState
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import androidx.paging.LoadState
 
 
 class MainActivity : ComponentActivity() {
@@ -159,7 +161,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun PodcastPagingScreen(podcastList: List<Podcast>, onPodcastClick: (Podcast) -> Unit) {
         val pager = remember(podcastList) {
-            Pager(PagingConfig(pageSize = 10)) {
+            Pager(PagingConfig(pageSize = 10, prefetchDistance = 1)) {
                 PodcastPagingSource(podcastList)
             }
         }
