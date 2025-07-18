@@ -157,7 +157,8 @@ class MainActivity : ComponentActivity() {
                     val responseBody = response.body?.string() ?: ""
                     runOnUiThread {
                         println("Raw JSON: $responseBody")
-                        val jsonElement = Json.parseToJsonElement(responseBody)
+                        val json = Json { ignoreUnknownKeys = true }
+                        val jsonElement = json.parseToJsonElement(responseBody)
                         val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
                         println("Parsed podcasts: " + podcastsJsonArray.toString())
                         val parsedPodcasts = Json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
