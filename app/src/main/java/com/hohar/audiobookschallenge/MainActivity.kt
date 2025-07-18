@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -61,6 +62,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingSource
+import androidx.paging.PagingState
 
 
 class MainActivity : ComponentActivity() {
@@ -78,8 +85,15 @@ class MainActivity : ComponentActivity() {
                 MainScreen(navController = navController) {
                     NavHost(navController = navController, startDestination = "podcastList") {
                         composable("podcastList") {
-                            PodcastList(podcastList) { selectedPodcast ->
-                                navController.navigate("podcastDetail/${selectedPodcast.id}")
+                            if (podcastList.isEmpty()) {
+                                Text("Loading podcasts...")
+                            } else {
+                                PodcastPagingScreen(
+                                    podcastList = podcastList,
+                                    onPodcastClick = { selectedPodcast ->
+                                        navController.navigate("podcastDetail/${selectedPodcast.id}")
+                                    }
+                                )
                             }
                         }
                         composable("podcastDetail/{podcastId}") { backStackEntry ->
@@ -141,14 +155,33 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     @Composable
-    fun PodcastList(podcasts: List<Podcast>, onPodcastClick: (Podcast) -> Unit) {
-        Column {
-            podcasts.forEach { podcast ->
-                PodcastItem(podcast, onClick = { onPodcastClick(podcast) })
+    fun PodcastPagingScreen(podcastList: List<Podcast>, onPodcastClick: (Podcast) -> Unit) {
+        val pager = remember(podcastList) {
+            Pager(PagingConfig(pageSize = 10)) {
+                PodcastPagingSource(podcastList)
+            }
+        }
+        val lazyPagingItems = pager.flow.collectAsLazyPagingItems()
+        PodcastPagingList(lazyPagingItems, onPodcastClick)
+    }
+
+    @Composable
+    fun PodcastPagingList(lazyPagingItems: LazyPagingItems<Podcast>, onPodcastClick: (Podcast) -> Unit) {
+        LazyColumn {
+            items(lazyPagingItems.itemCount) { index ->
+                val podcast = lazyPagingItems[index]
+                if (podcast != null) {
+                    PodcastItem(podcast, onClick = { onPodcastClick(podcast) })
+                }
+            }
+            if (lazyPagingItems.itemCount == 0) {
+                item { Text("No podcasts found or still loading...") }
             }
         }
     }
+
 
     @Composable
     fun PodcastItem(podcast: Podcast, onClick: () -> Unit) {
@@ -301,12 +334,14 @@ class MainActivity : ComponentActivity() {
                         println("Decoded podcasts: $parsedPodcasts")
                         podcastList.clear()
                         podcastList.addAll(parsedPodcasts)
+                        println("Podcast list size after fetch: ${podcastList.size}")
                     }
                 }
             }
         })
     }
 }
+
 
 
 
