@@ -20,16 +20,27 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.paging.cachedIn
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
+sealed class UiState {
+    object Loading : UiState()
+    data class Success(val podcasts: List<Podcast>) : UiState()
+    data class Error(val message: String) : UiState()
+}
 
 class PodcastViewModel : ViewModel() {
     private val client = OkHttpClient()
     private val _podcastList = MutableStateFlow<List<Podcast>>(emptyList())
     val podcastList: StateFlow<List<Podcast>> = _podcastList.asStateFlow()
+    
+    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     // PagingData flow for Compose
+    @OptIn(ExperimentalCoroutinesApi::class)
     val podcastPagingData: Flow<PagingData<Podcast>> = podcastList
         .flatMapLatest { list ->
-            Pager(PagingConfig(pageSize = 10)) {
+            Pager(PagingConfig(pageSize = 10, prefetchDistance = 1)) {
                 PodcastPagingSource(list)
             }.flow
         }
@@ -41,23 +52,39 @@ class PodcastViewModel : ViewModel() {
 
     fun fetchBestPodcasts() {
         viewModelScope.launch {
-            val request = Request.Builder()
-                .url("https://listen-api-test.listennotes.com/api/v2/best_podcasts")
-                .build()
-            val response = withContext(Dispatchers.IO) {
-                client.newCall(request).execute()
-            }
-            if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: ""
-                val json = Json { ignoreUnknownKeys = true }
-                val jsonElement = json.parseToJsonElement(responseBody)
-                val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
-                val parsedPodcasts = json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
-                println("Fetched podcasts: ${parsedPodcasts.size}")
-                _podcastList.value = parsedPodcasts
-            } else {
-                println("HTTP error: ${response.code}")
+            _uiState.value = UiState.Loading
+            try {
+                val request = Request.Builder()
+                    .url("https://listen-api-test.listennotes.com/api/v2/best_podcasts")
+                    .build()
+                val response = withContext(Dispatchers.IO) {
+                    client.newCall(request).execute()
+                }
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string() ?: ""
+                    val json = Json { ignoreUnknownKeys = true }
+                    val jsonElement = json.parseToJsonElement(responseBody)
+                    val podcastsJsonArray = jsonElement.jsonObject["podcasts"]!!
+                    val parsedPodcasts = json.decodeFromJsonElement<List<Podcast>>(podcastsJsonArray)
+                    println("Fetched podcasts: ${parsedPodcasts.size}")
+                    _podcastList.value = parsedPodcasts
+                    _uiState.value = UiState.Success(parsedPodcasts)
+                } else {
+                    _uiState.value = UiState.Error("HTTP error: ${response.code}")
+                }
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error("Network error: ${e.message}")
             }
         }
+    }
+    
+    fun toggleFavourite(podcastId: String) {
+        _podcastList.value = _podcastList.value.map {
+            if (it.id == podcastId) it.copy(favourite = !it.favourite) else it
+        }
+    }
+    
+    fun retry() {
+        fetchBestPodcasts()
     }
 }

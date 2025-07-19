@@ -4,11 +4,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Podcast(
-    val id: String? = null,
+    val id: String,
     val title: String? = null,
     val publisherName: String? = null,
     val image: String? = null,
     val thumbnail: String? = null,
     val description: String? = null,
-    var favourite: Boolean = false
+    val favourite: Boolean = false
 )

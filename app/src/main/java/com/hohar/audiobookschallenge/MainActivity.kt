@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,7 +33,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,35 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.rememberAsyncImagePainter
 import com.hohar.audiobookschallenge.ui.theme.AudiobooksChallengeTheme
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.jsonObject
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import java.io.IOException
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.LazyPagingItems
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
 import androidx.paging.LoadState
-import androidx.activity.viewModels
-import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.paging.compose.collectAsLazyPagingItems
-
-
-
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -87,19 +68,60 @@ class MainActivity : ComponentActivity() {
                 MainScreen(navController = navController) {
                     NavHost(navController = navController, startDestination = "podcastList") {
                         composable("podcastList") {
-                            val lazyPagingItems = viewModel.podcastPagingData.collectAsLazyPagingItems()
-                            PodcastPagingList(
-                                lazyPagingItems = lazyPagingItems,
-                                onPodcastClick = { selectedPodcast ->
-                                    navController.navigate("podcastDetail/${selectedPodcast.id}")
+                            val uiState by viewModel.uiState.collectAsState()
+                            when (uiState) {
+                                is UiState.Loading -> {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        CircularProgressIndicator()
+                                        Text(
+                                            text = "Loading podcasts...",
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        )
+                                    }
                                 }
-                            )
+                                is UiState.Success -> {
+                                    val lazyPagingItems = viewModel.podcastPagingData.collectAsLazyPagingItems()
+                                    PodcastPagingList(
+                                        lazyPagingItems = lazyPagingItems,
+                                        onPodcastClick = { selectedPodcast ->
+                                            navController.navigate("podcastDetail/${selectedPodcast.id}")
+                                        }
+                                    )
+                                }
+                                is UiState.Error -> {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = (uiState as UiState.Error).message,
+                                            color = Color.Red,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(16.dp)
+                                        )
+                                        Button(
+                                            onClick = { viewModel.retry() },
+                                            modifier = Modifier.padding(top = 16.dp)
+                                        ) {
+                                            Text("Retry")
+                                        }
+                                    }
+                                }
+                            }
                         }
                         composable("podcastDetail/{podcastId}") { backStackEntry ->
                             val podcastId = backStackEntry.arguments?.getString("podcastId")
                             val podcast = viewModel.podcastList.collectAsState().value.find { it.id == podcastId }
                             if (podcast != null) {
-                                PodcastDetails(podcast = podcast)
+                                PodcastDetails(
+                                    podcast = podcast,
+                                    onFavouriteClick = { viewModel.toggleFavourite(podcast.id) }
+                                )
                             } else {
                                 Text("Podcast not found")
                             }
@@ -134,7 +156,7 @@ class MainActivity : ComponentActivity() {
                                         .padding(start = 8.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.ArrowBack,
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                         contentDescription = "Back"
                                     )
                                     Text(
@@ -153,17 +175,6 @@ class MainActivity : ComponentActivity() {
                 content()
             }
         }
-    }
-
-    @Composable
-    fun PodcastPagingScreen(podcastList: List<Podcast>, onPodcastClick: (Podcast) -> Unit) {
-        val pager = remember(podcastList) {
-            Pager(PagingConfig(pageSize = 10, prefetchDistance = 1)) {
-                PodcastPagingSource(podcastList)
-            }
-        }
-        val lazyPagingItems = pager.flow.collectAsLazyPagingItems()
-        PodcastPagingList(lazyPagingItems, onPodcastClick)
     }
 
     @Composable
@@ -193,7 +204,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
 
     @Composable
     fun PodcastItem(podcast: Podcast, onClick: () -> Unit) {
@@ -249,9 +259,9 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun PodcastDetails(
-        podcast: Podcast
+        podcast: Podcast,
+        onFavouriteClick: () -> Unit
     ) {
-        var isFavourite by remember { mutableStateOf(podcast.favourite) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -275,20 +285,19 @@ class MainActivity : ComponentActivity() {
             )
 
             // Podcast image
-            Image(
-                painter = rememberAsyncImagePainter(podcast.image),
-                contentDescription = podcast.title ?: "",
-                modifier = Modifier
-                    .size(180.dp)
-                    .clip(RoundedCornerShape(16.dp))
-            )
+            if (!podcast.image.isNullOrEmpty()) {
+                Image(
+                    painter = rememberAsyncImagePainter(podcast.image),
+                    contentDescription = podcast.title ?: "",
+                    modifier = Modifier
+                        .size(180.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                )
+            }
 
             // Favourite button
             Button(
-                onClick = {
-                    isFavourite = !isFavourite
-                    podcast.favourite = !podcast.favourite
-                          },
+                onClick = onFavouriteClick,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4B4B)),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
@@ -296,7 +305,7 @@ class MainActivity : ComponentActivity() {
                     .fillMaxWidth(0.5f)
             ) {
                 Text(
-                    text = if (isFavourite) "Favourited" else "Favourite",
+                    text = if (podcast.favourite) "Favourited" else "Favourite",
                     color = Color.White,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
